@@ -63,6 +63,81 @@ attrIDs = list(enumerate(attr))
 attrIDs.append((int(0xdd),'Vendor Specific attribute'))
 actionSubs = list(enumerate(actsubtype))
 
+
+class DeviceCapability(object):
+    def __init__(self,data):
+        mapID(data[:2])
+        Committed_DW_Info(data[2:6])
+        Supported_Bands(data[6:8])
+        Operation_Mode(data[8:10])
+        Number_of_Antennas(data[10:12])
+        Max_Channel_Switch_Time(data[12:16])
+        Capability(data[16:])
+    @staticmethod
+    def mapID(data):
+        #b0: set to 1 to indicate the device capabilities only apply to the specified NAN Availability map. set to 0 to indicate the device capabilities apply to the device, when no NAN Availability map is included in the same frame, or apply to all NAN Availability maps included in the same frame.
+        #b1-b4: indicate the NAN Availability map associated with the device capabilities; and reserved when b0 is set to 0.
+        if '{:08b}'.format(int(data,16))[0] == 1:
+            print 'mapID==1 device capabilities only apply to the specified NAN Availability map'
+        else:
+            print 'mapID==0 device capabilities only apply to the specified NAN Availability map'
+    @staticmethod
+    def Committed_DW_Info(data):
+        pass
+        #2.4 GHz DW b0-b2
+        if '{:016b}'.format(int(data,16))[0:2] == 1:
+        #5 GHz DW b3-b5
+        # 2.4 GHz DW Overwrite b6-b9
+        #5 GHz DW Overwrite b10-b13
+        #Reserved b14-b15
+        
+        
+        
+class Element(object):
+    def __init__(self,data):        
+        pass
+        #mapID 1, Elements var
+        
+class NanAvailability(object):
+    def __init__(self,data):        
+        pass
+        #Sequence ID 1, Attribute Ctrl 2, Availablity Entry List va
+        
+class NDCattr(object):
+    def __init__(self,data):        
+        pass
+        #NDC ID 6, Attribute Ctrl 1, Schedule Entry List var
+        
+class NDLattr(object):
+    def __init__(self,data):        
+        pass
+        #Dialog Token 1, Type and Status 1, Reason Code 1, NDL Ctrl 1, Reserved 1, Max Idle Period 2, Immutable Sched var
+        
+class NDLQoSattr(object):
+    def __init__(self,data):        
+        pass
+        #Minimum time slots 1,Maximum latency 2, Attribute ID 1, Length 2, Attribute Control 2, Starting Time 4, Duration 4,Duration 4, Period 4, Count Down 1, ULW Overwrite 1, ULW Control 0|1, Band ID var
+        
+class NDPattr(object):
+    def __init__(self,data):        
+        pass
+        #Dialog Token 1, Type and Status 1, Reason Code 1, Initiator IDI 6, NDP ID 1, NDP ctrl 1, Publish ID 1, Responder NDI 6, NDP Spec info var
+        
+class UnalignedSched(object):
+    def __init__(self,data):        
+        pass
+        #Attribute Control 2, Starting Time 4, Duration 4, Period 4,Count Down 1,ULW Control 0|1, Band ID var
+        
+datapathSetup = {'Device Capability' : DeviceCapability,
+                 'Element Container attribute' : Element,
+                 'NAN Availability' : NanAvailability,
+                 'NDC attribute' : NDCattr,
+                 'NDL attribute' : NDLattr,
+                 'NDL QoS attribute' : NDLQoSattr,
+                 'NDP attribute' : NDPattr,
+                 'Unaligned Schedule attribute' : UnalignedSched}
+
+
 def getsubtype(octet):
     for i in actionSubs:
         if "{:02x}".format(i[0]) == octet:
@@ -130,7 +205,7 @@ class Cmdparse(object):
             nan = self._args.fname
             isPcap = False
         binPackets(nan, isPcap)
-        #nan = rdpcap('/home/hp/Desktop/nan/actiononly.pcapng')
+        
 
 if __name__ == '__main__':
     Cmdparse()
