@@ -66,32 +66,102 @@ actionSubs = list(enumerate(actsubtype))
 
 class DeviceCapability(object):
     def __init__(self,data):
-        mapID(data[:2])
-        Committed_DW_Info(data[2:6])
-        Supported_Bands(data[6:8])
-        Operation_Mode(data[8:10])
-        Number_of_Antennas(data[10:12])
-        Max_Channel_Switch_Time(data[12:16])
-        Capability(data[16:])
+        DeviceCapability.mapID(data[:2])
+        DeviceCapability.Committed_DW_Info(data[2:6])
+        DeviceCapability.Supported_Bands(data[6:8])
+        DeviceCapability.Operation_Mode(data[8:10])
+        DeviceCapability.Number_of_Antennas(data[10:12])
+        DeviceCapability.Max_Channel_Switch_Time(data[12:16])
+        DeviceCapability.Capability(data[16:])
     @staticmethod
     def mapID(data):
         #b0: set to 1 to indicate the device capabilities only apply to the specified NAN Availability map. set to 0 to indicate the device capabilities apply to the device, when no NAN Availability map is included in the same frame, or apply to all NAN Availability maps included in the same frame.
         #b1-b4: indicate the NAN Availability map associated with the device capabilities; and reserved when b0 is set to 0.
         if '{:08b}'.format(int(data,16))[0] == 1:
-            print 'mapID==1 device capabilities only apply to the specified NAN Availability map'
+            print '\tmapID==1 device capabilities only apply to the specified NAN Availability map'
         else:
-            print 'mapID==0 device capabilities only apply to the specified NAN Availability map'
+            print '\tmapID==0 device capabilities apply to the device'
+            
     @staticmethod
     def Committed_DW_Info(data):
-        pass
+        DW_fields = '{:016b}'.format(int(data,16))
+        print '\tCommitted Discovery Window Info'
         #2.4 GHz DW b0-b2
-        if '{:016b}'.format(int(data,16))[0:2] == 1:
+        print '\t\t2.4GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[0:3])
         #5 GHz DW b3-b5
+        print '\t\t5GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[3:6])
         # 2.4 GHz DW Overwrite b6-b9
+        print '\t\t2.4GHz MapID {}'.format(DW_fields[6:10])
         #5 GHz DW Overwrite b10-b13
+        print '\t\t5GHz MapID {} '.format(DW_fields[10:14])
         #Reserved b14-b15
+        print '\t\tReserved'.format(DW_fields[14:])
         
+    @staticmethod
+    def Supported_Bands(data):
+        #Bitmap of Band IDs
+        #Bit 0: Reserved (for TV white spaces)
+        #Bit 1: Sub-1 GHz (excluding TV white spaces)
+        #Bit 2: 2.4 GHz
+        #Bit 3: Reserved (for 3.6 GHz)
+        #Bit 4: 4.9 and 5 GHz
+        #Bit 5: Reserved (for 60 GHz)
+        #Bit 6-7: Reserved
+        bandbits = '{:08b}'.format(int(data,16))
+        print '\tSupported_Bands'
+        print '\t\tReserved: {}'.format(bandbits[0])
+        print '\t\tSub-1 GHz: {}'.format(bandbits[1])
+        print '\t\t2.4 GHz: {}'.format(bandbits[2])
+        print '\t\tReserved (for 3.6 GHz): {}'.format(bandbits[3])
+        print '\t\t4.9 and 5 GHz: {}'.format(bandbits[4])
+        print '\t\tReserved (for 60 GHz): {}'.format(bandbits[5])
+        print '\t\tReserved: {}'.format(bandbits[6:])
         
+    @staticmethod
+    def Operation_Mode(data):
+        #PHY Mode	b0		1: VHT	0: HT only
+        #VHT 80+80	b1		1: VHT 80+80 support	0: otherwise
+        #VHT 160		b2		1: VHT 160 support	0: otherwise
+        #Paging NDL Support	b3		1: P-NDL supported	0 P-NDL not supported
+        #Reserved	b4-b7		Reserved	
+        opbits = '{:08b}'.format(int(data,16))
+        print '\tOperation_Mode'
+        print ('\t\tPHY Mode: VHT' if opbits[0] == '1' else '\t\tPHY Mode: HT only' )
+        print ('\t\tVHT 80+80: Supported' if opbits[1] == '1' else '\t\tVHT 80+80: Unsupported' )
+        print ('\t\tVHT 160: Supported' if opbits[2] == '1' else '\t\tVHT 80+80: Unsupported' )
+        print ('\t\tPaging NDL Support: Supported' if opbits[3] == '1' else '\t\tPaging NDL Support: Unsupported' )
+        print '\t\tReserved {}'.format(opbits[4:])
+        
+    @staticmethod
+    def Number_of_Antennas(data):
+        #Bit 0-3: Number of TX antennas
+        #Bit 4-7: Number of RX antennas
+        #Value 0 indicates the information is not available.
+        antbits = '{:08b}'.format(int(data,16))
+        print '\tNumber of Antennas'
+        print ('\t\tTX antennas: not available' if int(antbits[0:4],2) == 0 else '\t\tTX antennas: {}'.format(int(antbits[0:4],2)) )
+        print ('\t\tRX antennas: not available' if int(antbits[4:],2) == 0 else '\t\tRX antennas: {}'.format(int(antbits[4:],2)) )
+            
+    @staticmethod
+    def Max_Channel_Switch_Time(data):
+        #Indicates max channel switch time in units of microseconds;
+        #Value 0 indicates the information is not available.
+        #Note: Max Channel Switch Time value should be the same across multiple Device Capability attributes included in a single frame.
+        ChSwitchTime = int(data,16)
+        print ('\tMax channel switch time: not available' if ChSwitchTime == 0 else '\tMax channel switch time (uS): {}'.format(ChSwitchTime))
+        
+    @staticmethod
+    def Capability(data):
+        #Bit 0 (DFS Master): Set to 1 indicates that the device is a DFS master device. Otherwise, set to 0.
+        #Bit 1 (Extended Key ID): Set to 1 indicates that the device supports IEEE 802.11 extended key ID mechanism (refer to [1] section 9.4.2.25.4], otherwise, set to 0. If this bit is set to 0, the Key ID 0 shall be used.
+        #Bit 2 (Simultaneous NDP data reception): Set to 0 to indicate that the NAN Device does not support to receive the data packets of NDPs belonging to the same NDI pair in more than one channel within any Committed FAW or ULW. The NAN Device's behavior when this bit is set to 1 is outside the scope of this specification.
+        #Bit 3 to Bit 7: Reserved.
+        capabilitybits = '{:08b}'.format(int(data,16))
+        print '\tCapability'
+        print ('\t\tDFS master device: True' if capabilitybits[0] == '1' else '\t\tDFS master device: False' )
+        print ('\t\tDevice supports IEEE 802.11 extended key ID mechanism: True' if capabilitybits[1] == '1' else '\t\tDevice supports IEEE 802.11 extended key ID mechanism: False' )
+        print ('\t\tSimultaneous NDP data reception: True' if capabilitybits[2] == '1' else '\t\tSimultaneous NDP data reception: False' )
+        print ('\t\tReserved {}'.format(capabilitybits[3:]))
         
 class Element(object):
     def __init__(self,data):        
@@ -149,6 +219,13 @@ def parseNan(data):
         #print "{:02x}".format(id[0]), data[0:2]
         if "{:02x}".format(i[0]) in data[0:2] :
             print i[1]
+            try:
+                length = int(data[2:4],16)  #actually 2 octets [2:6] bigEndian maybe though
+                datapathSetup[i[1]](data[6:(length*2)+6])
+            except KeyError:
+                pass
+            except Exception:
+                raise                
             match = True
     if not match:
         print data
