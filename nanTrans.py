@@ -165,8 +165,11 @@ class DeviceCapability(object):
         
 class Element(object):
     def __init__(self,data):        
+        DeviceCapability.mapID(data[:2])
+    @staticmethod
+    def info_elements(data):    
+        #802.11-2016 9.4.2 Elements
         pass
-        #mapID 1, Elements var
         
 class NanAvailability(object):
     def __init__(self,data):        
