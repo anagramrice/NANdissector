@@ -77,7 +77,7 @@ class DeviceCapability(object):
     def mapID(data):
         #b0: set to 1 to indicate the device capabilities only apply to the specified NAN Availability map. set to 0 to indicate the device capabilities apply to the device, when no NAN Availability map is included in the same frame, or apply to all NAN Availability maps included in the same frame.
         #b1-b4: indicate the NAN Availability map associated with the device capabilities; and reserved when b0 is set to 0.
-        if '{:08b}'.format(int(data,16))[0] == 1:
+        if '{:08b}'.format(int(data,16))[7] == 1:
             print '\tmapID==1 device capabilities only apply to the specified NAN Availability map'
         else:
             print '\tmapID==0 device capabilities apply to the device'
@@ -87,15 +87,15 @@ class DeviceCapability(object):
         DW_fields = '{:016b}'.format(int(data,16))
         print '\tCommitted Discovery Window Info'
         #2.4 GHz DW b0-b2
-        print '\t\t2.4GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[0:3])
+        print '\t\t2.4GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[13:16])
         #5 GHz DW b3-b5
-        print '\t\t5GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[3:6])
+        print '\t\t5GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[10:13])
         # 2.4 GHz DW Overwrite b6-b9
         print '\t\t2.4GHz MapID {}'.format(DW_fields[6:10])
         #5 GHz DW Overwrite b10-b13
-        print '\t\t5GHz MapID {} '.format(DW_fields[10:14])
+        print '\t\t5GHz MapID {} '.format(DW_fields[2:6])
         #Reserved b14-b15
-        print '\t\tReserved'.format(DW_fields[14:])
+        print '\t\tReserved'.format(DW_fields[:2])
         
     @staticmethod
     def Supported_Bands(data):
@@ -109,13 +109,13 @@ class DeviceCapability(object):
         #Bit 6-7: Reserved
         bandbits = '{:08b}'.format(int(data,16))
         print '\tSupported_Bands'
-        print '\t\tReserved: {}'.format(bandbits[0])
-        print '\t\tSub-1 GHz: {}'.format(bandbits[1])
-        print '\t\t2.4 GHz: {}'.format(bandbits[2])
-        print '\t\tReserved (for 3.6 GHz): {}'.format(bandbits[3])
-        print '\t\t4.9 and 5 GHz: {}'.format(bandbits[4])
-        print '\t\tReserved (for 60 GHz): {}'.format(bandbits[5])
-        print '\t\tReserved: {}'.format(bandbits[6:])
+        print '\t\tReserved: {}'.format(bandbits[7])
+        print '\t\tSub-1 GHz: {}'.format(bandbits[6])
+        print '\t\t2.4 GHz: {}'.format(bandbits[5])
+        print '\t\tReserved (for 3.6 GHz): {}'.format(bandbits[4])
+        print '\t\t4.9 and 5 GHz: {}'.format(bandbits[3])
+        print '\t\tReserved (for 60 GHz): {}'.format(bandbits[2])
+        print '\t\tReserved: {}'.format(bandbits[:2])
         
     @staticmethod
     def Operation_Mode(data):
@@ -126,11 +126,11 @@ class DeviceCapability(object):
         #Reserved	b4-b7		Reserved	
         opbits = '{:08b}'.format(int(data,16))
         print '\tOperation_Mode'
-        print ('\t\tPHY Mode: VHT' if opbits[0] == '1' else '\t\tPHY Mode: HT only' )
-        print ('\t\tVHT 80+80: Supported' if opbits[1] == '1' else '\t\tVHT 80+80: Unsupported' )
-        print ('\t\tVHT 160: Supported' if opbits[2] == '1' else '\t\tVHT 80+80: Unsupported' )
-        print ('\t\tPaging NDL Support: Supported' if opbits[3] == '1' else '\t\tPaging NDL Support: Unsupported' )
-        print '\t\tReserved {}'.format(opbits[4:])
+        print ('\t\tPHY Mode: VHT' if opbits[7] == '1' else '\t\tPHY Mode: HT only' )
+        print ('\t\tVHT 80+80: Supported' if opbits[6] == '1' else '\t\tVHT 80+80: Unsupported' )
+        print ('\t\tVHT 160: Supported' if opbits[5] == '1' else '\t\tVHT 80+80: Unsupported' )
+        print ('\t\tPaging NDL Support: Supported' if opbits[4] == '1' else '\t\tPaging NDL Support: Unsupported' )
+        print '\t\tReserved {}'.format(opbits[:4])
         
     @staticmethod
     def Number_of_Antennas(data):
@@ -158,10 +158,10 @@ class DeviceCapability(object):
         #Bit 3 to Bit 7: Reserved.
         capabilitybits = '{:08b}'.format(int(data,16))
         print '\tCapability'
-        print ('\t\tDFS master device: True' if capabilitybits[0] == '1' else '\t\tDFS master device: False' )
-        print ('\t\tDevice supports IEEE 802.11 extended key ID mechanism: True' if capabilitybits[1] == '1' else '\t\tDevice supports IEEE 802.11 extended key ID mechanism: False' )
-        print ('\t\tSimultaneous NDP data reception: True' if capabilitybits[2] == '1' else '\t\tSimultaneous NDP data reception: False' )
-        print ('\t\tReserved {}'.format(capabilitybits[3:]))
+        print ('\t\tDFS master device: True' if capabilitybits[7] == '1' else '\t\tDFS master device: False' )
+        print ('\t\tDevice supports IEEE 802.11 extended key ID mechanism: True' if capabilitybits[6] == '1' else '\t\tDevice supports IEEE 802.11 extended key ID mechanism: False' )
+        print ('\t\tSimultaneous NDP data reception: True' if capabilitybits[5] == '1' else '\t\tSimultaneous NDP data reception: False' )
+        print ('\t\tReserved {}'.format(capabilitybits[:5]))
         
 class Element(object):
     def __init__(self,data):        
@@ -193,8 +193,106 @@ class NDLQoSattr(object):
         
 class NDPattr(object):
     def __init__(self,data):        
-        pass
+        NDPattr.Dialog_Token(data[:2])
+        NDPattr.Type_Status(data[2:4])
+        NDPattr.ReasonCode(data[4:6])
+        NDPattr.Initiator_IDI(data[6:18])
+        NDPattr.NDP_ID(data[18:20])
+        NDPattr.NDP_ctrl(data[20:])        
         #Dialog Token 1, Type and Status 1, Reason Code 1, Initiator IDI 6, NDP ID 1, NDP ctrl 1, Publish ID 1, Responder NDI 6, NDP Spec info var
+        
+    def Dialog_Token(data):
+        print '\tDialog Token id of transaction: {}'.format(data)
+        
+    def Type_Status(data):
+        typebits = '{:08b}'.format(int(data,16))[:4]
+        statusbits = '{:08b}'.format(int(data,16))[4:]
+        type = int(typebits,2)
+        status = int(statusbits,2)
+        print '\tType and Status'
+        if type == 0:        
+            print ('\t\tType: Request')
+        elif type == 1:
+            print ('\t\tType: Response')
+        elif type == 2:
+            print ('\t\tType: Confirm')
+        elif type == 3:
+            print ('\t\tType: Security Install')
+        elif type == 4:
+            print ('\t\tType: Terminate')
+        else:
+            print ('\t\tType: Reserved')
+        if status == 0:        
+            print ('\t\tstatus: Continued')
+        elif status == 1:
+            print ('\t\tstatus: Accepted')
+        elif status == 2:
+            print ('\t\tstatus: Rejected')
+        else:
+            print ('\t\tstatus: Reserved')
+        
+    def ReasonCode(data):
+        reasons = {0: ('Reserved', 'Reserved'),
+1: ('UNSPECIFIED_REASON', 'Unspecified reason'),
+2: ('RESOURCE_LIMITATION', 'Resource limitation'),
+3: ('INVALID_PARAMETERS' , 'Invalid parameters'),
+4: ('FTM_PARAMETERS_INCAPABLE', 'FTM parameters incapable'),
+5:	('NO_MOVEMENT', 'No Movement'),
+6:	('INVALID_AVAILABILITY', 'Invalid NAN Availability attribute'),
+7: ('IMMUTABLE_UNACCEPTABLE', 'Immutable schedule unacceptable'),
+8: ('SECURITY_POLICY', 'Rejected due to device/service security policy'),
+9: ('QoS_UNACCEPTABLE', 'QoS requirements unacceptable'),
+10: ('NDP_REJECTED', 'NDP request rejected by upper layer'),
+11: ('NDL_UNACCEPTABLE', 'NDL schedule proposal unacceptable'),
+12: ('RANGING_SCHEDULE_UNACCEPTABLE', 'Ranging schedule proposal unacceptable')}
+        code = int(data,16)
+        print '\tReason Field'
+        try:
+            print '\t\t{}'.format(reasons[code])
+        except Exception:
+            print '\t\tReserved'
+            
+    def Initiator_IDI(data):
+        print '\tInitiator MAC identifier'
+        print '\t\t{}'.format(data)
+        
+    def NDP_ID(data): 
+        print '\tNDP ID: {}'.format(int(data,16))
+        
+    def NDP_ctrl(data):
+        #Confirm Required	b0	Valid for joint NDP/NDL setup and when the Type subfield is set to “Request”. Reserved otherwise.
+        #	0 – Confirm not required from NDP/NDL Initiator
+        #	1 – Confirm required from NDP/NDL Initiator
+        #Reserved	b1
+        #	Reserved
+        #Security Present	b2
+        #	0 – the NDP does not require security.
+        #	1 – the NDP requires security, and the associated security attributes are included in the same NAF.
+        #Publish ID Present	b3
+        #	0 – the Publish ID field is not present
+        #	1 – the Publish ID field is present
+        #Responder NDI Present	b4
+        #	0 – the Responder NDI field is not present
+        #	1 – the Responder NDI field is present
+        #NDP Specific Info present	b5
+        #	0 – the NDP Specific Info field is not present
+        #	1 – the NDP Specific Info field is present
+        #Reserved	b6-b7
+        #	Reserved
+
+        ctrlbits = '{:08b}'.format(int(data[:2],16))
+        if pubid:
+            NDPattr.Publish_ID(data[22:24])
+        if response:
+            NDPattr.Responder_NDI(data[24:12])
+        NDPattr.NDP_Spec_info(data[12:16])
+        
+    def Publish_ID(data):
+        pass
+    def Responder_NDI(data):
+        pass
+    def NDP_Spec_info(data):
+        pass
         
 class UnalignedSched(object):
     def __init__(self,data):        
@@ -243,6 +341,7 @@ def parseNan(data):
 
 
 def binPackets(nan, isPcap):
+    count = 1
     for packet in nan:
         if isPcap:
             data = str(packet).encode('HEX')
@@ -268,7 +367,8 @@ def binPackets(nan, isPcap):
             nandata = data.split('506f9a13')[1]
             print 'Info Element ' ,  nandata
             parseNan(nandata)
-        print '#'*20, 'end of packet'
+        print '#'*20, 'end of packet', count
+        count+=1
 
 
 class Cmdparse(object):
