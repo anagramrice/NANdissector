@@ -200,10 +200,11 @@ class NDPattr(object):
         NDPattr.NDP_ID(data[18:20])
         NDPattr.NDP_ctrl(data[20:])        
         #Dialog Token 1, Type and Status 1, Reason Code 1, Initiator IDI 6, NDP ID 1, NDP ctrl 1, Publish ID 1, Responder NDI 6, NDP Spec info var
-        
+    
+    @staticmethod    
     def Dialog_Token(data):
         print '\tDialog Token id of transaction: {}'.format(data)
-        
+    @staticmethod    
     def Type_Status(data):
         typebits = '{:08b}'.format(int(data,16))[:4]
         statusbits = '{:08b}'.format(int(data,16))[4:]
@@ -230,7 +231,7 @@ class NDPattr(object):
             print ('\t\tstatus: Rejected')
         else:
             print ('\t\tstatus: Reserved')
-        
+    @staticmethod    
     def ReasonCode(data):
         reasons = {0: ('Reserved', 'Reserved'),
 1: ('UNSPECIFIED_REASON', 'Unspecified reason'),
@@ -251,49 +252,70 @@ class NDPattr(object):
             print '\t\t{}'.format(reasons[code])
         except Exception:
             print '\t\tReserved'
-            
+    @staticmethod        
     def Initiator_IDI(data):
         print '\tInitiator MAC identifier'
         print '\t\t{}'.format(data)
-        
+    @staticmethod    
     def NDP_ID(data): 
         print '\tNDP ID: {}'.format(int(data,16))
-        
+    @staticmethod    
     def NDP_ctrl(data):
-        #Confirm Required	b0	Valid for joint NDP/NDL setup and when the Type subfield is set to “Request”. Reserved otherwise.
-        #	0 – Confirm not required from NDP/NDL Initiator
-        #	1 – Confirm required from NDP/NDL Initiator
+        #Confirm Required	b0	Valid for joint NDP/NDL setup and when the Type subfield is set to "Request". Reserved otherwise.
+        #	0 - Confirm not required from NDP/NDL Initiator
+        #	1 - Confirm required from NDP/NDL Initiator
         #Reserved	b1
         #	Reserved
         #Security Present	b2
-        #	0 – the NDP does not require security.
-        #	1 – the NDP requires security, and the associated security attributes are included in the same NAF.
+        #	0 - the NDP does not require security.
+        #	1 - the NDP requires security, and the associated security attributes are included in the same NAF.
         #Publish ID Present	b3
-        #	0 – the Publish ID field is not present
-        #	1 – the Publish ID field is present
+        #	0 - the Publish ID field is not present
+        #	1 - the Publish ID field is present
         #Responder NDI Present	b4
-        #	0 – the Responder NDI field is not present
-        #	1 – the Responder NDI field is present
+        #	0 - the Responder NDI field is not present
+        #	1 - the Responder NDI field is present
         #NDP Specific Info present	b5
-        #	0 – the NDP Specific Info field is not present
-        #	1 – the NDP Specific Info field is present
+        #	0 - the NDP Specific Info field is not present
+        #	1 - the NDP Specific Info field is present
         #Reserved	b6-b7
         #	Reserved
-
         ctrlbits = '{:08b}'.format(int(data[:2],16))
-        if pubid:
-            NDPattr.Publish_ID(data[22:24])
-        if response:
-            NDPattr.Responder_NDI(data[24:12])
-        NDPattr.NDP_Spec_info(data[12:16])
-        
+        confirm = ctrlbits[7]
+        reserved = ctrlbits[6]
+        security = ctrlbits[5]
+        pubid = ctrlbits[4]
+        responderMAC = ctrlbits[3]
+        ndpSpecInfo = ctrlbits[2]
+        resesrved2 = ctrlbits[:2]
+        base = 2
+        print ('\tNDP Control')
+        print ('\t\tConfirm NOT required from NDP/NDL Initiator' if int(confirm) == 0 else '\t\tConfirm required from NDP/NDL Initiator')
+        print ('\t\tNDP does NOT require security.' if int(security) == 0 else '\t\tNDP requires security, and the associated security attributes are included in the same NAF.' )
+        print ('\t\tPublish ID: False' if int(pubid) == 0 else '\t\tPublish ID: True' )
+        print ('\t\tResponder NDI: False' if int(responderMAC) == 0 else '\t\tResponder NDI: True' )
+        print ('\t\tNDP Specific Info: False' if int(ndpSpecInfo) == 0 else '\t\tNDP Specific Info: True' )
+        if int(pubid):
+            NDPattr.Publish_ID(data[base:base+2])
+            base+=2
+        if int(responderMAC):
+            NDPattr.Responder_NDI(data[base:base+12])
+            base+=12
+        if int(ndpSpecInfo):    
+            NDPattr.NDP_Spec_info(data[base:])
+    @staticmethod    
     def Publish_ID(data):
-        pass
+        print ('\tPublish_ID: {}'.format(data))
+    @staticmethod
     def Responder_NDI(data):
-        pass
+        print ('\tNDP Responder\'s Data Interface Address: {}'.format(data))
+    @staticmethod
     def NDP_Spec_info(data):
-        pass
-        
+        try:
+            print ('\NDP Specific Info {}'.format(data.decode("hex")))
+        except Exception:
+            print ('\NDP Specific Info {}'.format(data))
+            
 class UnalignedSched(object):
     def __init__(self,data):        
         pass
