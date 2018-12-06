@@ -73,6 +73,7 @@ class DeviceCapability(object):
         DeviceCapability.Number_of_Antennas(data[10:12])
         DeviceCapability.Max_Channel_Switch_Time(data[12:16])
         DeviceCapability.Capability(data[16:])
+        
     @staticmethod
     def mapID(data):
         #b0: set to 1 to indicate the device capabilities only apply to the specified NAN Availability map. set to 0 to indicate the device capabilities apply to the device, when no NAN Availability map is included in the same frame, or apply to all NAN Availability maps included in the same frame.
@@ -166,6 +167,7 @@ class DeviceCapability(object):
 class Element(object):
     def __init__(self,data):        
         DeviceCapability.mapID(data[:2])
+        
     @staticmethod
     def info_elements(data):    
         #802.11-2016 9.4.2 Elements
@@ -178,18 +180,84 @@ class NanAvailability(object):
         
 class NDCattr(object):
     def __init__(self,data):        
-        pass
+        NDCattr.NDC_ID(data[:12])
+        NDCattr.attr_ctrl(data[12:14])
+        NDCattr.schedule_entry_list(data[14:])
         #NDC ID 6, Attribute Ctrl 1, Schedule Entry List var
+        
+    @staticmethod
+    def NDC_ID(data):
+        print ('\tNAN Data Cluster Address: {}'.format(data))
+        
+    @staticmethod
+    def attr_ctrl(data):
+        #b0	Selected NDC
+        #	1: Selected NDC for a NDL Schedule;
+        #	0: NDC included for the peer's information.
+        #b1-b7	Reserved
+        #	Reserved
+        ctrlbits = '{:08b}'.format(int(data,16))
+        print '\tAttribute Control'
+        print ('\t\tSelected NDC for a NDL Schedule' if ctrlbits[7] == '1' else '\t\tNDC included for the peer\'s information' )
+        
+    @staticmethod
+    def schedule_entry_list(data):
+        #Map ID	1
+        #	b0 - b3: Indicates the NAN Availability attribute associated with the subsequent schedule time bitmap.
+        #	b4 - b7: reserved
+        #Time Bitmap Control	2	Indicates the parameters associated with the subsequent Time Bitmap field. 
+        #		0-2	Bit Duration
+        #				0:16 TU
+        #				1:32 TU
+        #				2:64 TU
+        #				3:128 TU
+        #				4-7 reserved
+        #				
+        #		3-5	Period  --Indicate the repeat interval of the following bitmap. When set to 0, the indicated bitmap is not repeated.
+        #		When set to non-zero, the repeat interval is:
+        #				1: 128 TU
+        #				2: 256 TU
+        #				3: 512 TU
+        #				4: 1024 TU
+        #				5: 2048 TU
+        #				6: 4096 TU
+        #				7: 8192 TU
+        #		6-14	Start Offset
+        #			Start Offset is an integer. The time period specified by the Time Bitmap field starts at the 16 * Start Offset TUs after DW0.
+        #			Note that the NAN Slots not covered by any Time Bitmap are assumed to be NOT available.
+        #		15	Reserved
+        #			Reserved
+        #Time Bitmap Length	1	Indicate the length of the following Time Bitmap field, in the number of octets.
+        #Time Bitmap			Variable	Indicates the time windows associated with the schedule
+        print ('\tSchedule Entry')
+        print ('\t\tMapID Indicates the NAN Availability attribute associated with the subsequent schedule time bitmap: {:08b}'.format(int(data[:2],16)))
+        timebitCtrl = '{:016b}'.format(int(data[2:6],16))
+        print ('\t\tTime Bitmap Control')
+        print ('\t\t\tDuration: {}'(int(timebitCtrl[13:16],2)))
+        print ('\t\t\tPeriod'(int(timebitCtrl[10:13],2)))
+        print ('\t\t\tStart Offset:'.format(int(timebitCtrl[1:10],2)))
+        print ('\t\tTime Bitmap Length: {}'.format(int(data[6:8],16)))
+        print ('\t\tTime Bitmap {}'.format(data[8:]))
         
 class NDLattr(object):
     def __init__(self,data):        
-        pass
+        NDPattr.Dialog_Token(data[:2])
+        NDPattr.Type_Status(data[2:4])
+        NDPattr.ReasonCode(data[4:6])
         #Dialog Token 1, Type and Status 1, Reason Code 1, NDL Ctrl 1, Reserved 1, Max Idle Period 2, Immutable Sched var
         
 class NDLQoSattr(object):
     def __init__(self,data):        
-        pass
-        #Minimum time slots 1,Maximum latency 2, Attribute ID 1, Length 2, Attribute Control 2, Starting Time 4, Duration 4,Duration 4, Period 4, Count Down 1, ULW Overwrite 1, ULW Control 0|1, Band ID var
+        NDLQoSattr.MinTimeSlots(data[:2])
+        NDLQoSattr.MaxLatency(data[2:])
+    
+    @staticmethod    
+    def MinTimeSlots(data):
+        print ('\t\tMinimum number of further available NAN Slots needed per DW interval (512 TU): {}'.format(int(data,16)) if int(data,16) != 0 else '\t\tMinimum time slot: No Preference' )
+    @staticmethod    
+    def MaxLatency(data):
+        print ('\t\tMaximum allowed NAN Slots between every two non-contiguous NDL CRBs: {}'.format(int(data,16)) if int(data,16) != 65535 else '\t\tMinimum time slot: No Preference' )
+        
         
 class NDPattr(object):
     def __init__(self,data):        
@@ -316,6 +384,7 @@ class NDPattr(object):
         except Exception:
             print ('\NDP Specific Info {}'.format(data))
             
+            
 class UnalignedSched(object):
     def __init__(self,data):        
         pass
@@ -329,6 +398,15 @@ datapathSetup = {'Device Capability' : DeviceCapability,
                  'NDL QoS attribute' : NDLQoSattr,
                  'NDP attribute' : NDPattr,
                  'Unaligned Schedule attribute' : UnalignedSched}
+
+                 
+                 
+##  __  __    _    ___ _   _    ____ ___  ____  _____  
+## |  \/  |  / \  |_ _| \ | |  / ___/ _ \|  _ \| ____| 
+## | |\/| | / _ \  | ||  \| | | |  | | | | | | |  _|   
+## | |  | |/ ___ \ | || |\  | | |__| |_| | |_| | |___  
+## |_|  |_/_/   \_\___|_| \_|  \____\___/|____/|_____| 
+##                                                     
 
 
 def getsubtype(octet):
