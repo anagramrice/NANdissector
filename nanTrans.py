@@ -2,6 +2,7 @@ from scapy.all import *
 import traceback as tb
 import re
 import argparse
+from infoelements import * 
 
 actsubtype = ['Reserved',
 'Ranging Request',
@@ -164,14 +165,14 @@ class DeviceCapability(object):
         print ('\t\tSimultaneous NDP data reception: True' if capabilitybits[5] == '1' else '\t\tSimultaneous NDP data reception: False' )
         print ('\t\tReserved {}'.format(capabilitybits[:5]))
         
-class Element(object):
-    def __init__(self,data):        
-        DeviceCapability.mapID(data[:2])
-        
-    @staticmethod
-    def info_elements(data):    
-        #802.11-2016 9.4.2 Elements
-        pass
+#class Element(object):
+#    def __init__(self,data):        
+#        DeviceCapability.mapID(data[:2])
+#        
+#    @staticmethod
+#    def info_elements(data):    
+#        #802.11-2016 9.4.2 Elements
+#        pass
         
 class NanAvailability(object):
     def __init__(self,data):        
@@ -233,9 +234,9 @@ class NDCattr(object):
         print ('\t\tMapID Indicates the NAN Availability attribute associated with the subsequent schedule time bitmap: {:08b}'.format(int(data[:2],16)))
         timebitCtrl = '{:016b}'.format(int(data[2:6],16))
         print ('\t\tTime Bitmap Control')
-        print ('\t\t\tDuration: {}'(int(timebitCtrl[13:16],2)))
-        print ('\t\t\tPeriod'(int(timebitCtrl[10:13],2)))
-        print ('\t\t\tStart Offset:'.format(int(timebitCtrl[1:10],2)))
+        print ('\t\t\tDuration: {}'.format(int(timebitCtrl[13:16],2)))
+        print ('\t\t\tPeriod: {}'.format(int(timebitCtrl[10:13],2)))
+        print ('\t\t\tStart Offset: {}'.format(int(timebitCtrl[1:10],2)))
         print ('\t\tTime Bitmap Length: {}'.format(int(data[6:8],16)))
         print ('\t\tTime Bitmap {}'.format(data[8:]))
         
@@ -244,7 +245,67 @@ class NDLattr(object):
         NDPattr.Dialog_Token(data[:2])
         NDPattr.Type_Status(data[2:4])
         NDPattr.ReasonCode(data[4:6])
+        NDLattr.NDL_Ctrl(data[6:])
         #Dialog Token 1, Type and Status 1, Reason Code 1, NDL Ctrl 1, Reserved 1, Max Idle Period 2, Immutable Sched var
+    @staticmethod    
+    def NDL_Ctrl(data):
+        #NDL Peer ID Present 1
+        #	1: Indicates the NDL Peer ID field is included in the NDL attribute;
+        #	0: otherwise
+        #Immutable Schedule Present 1
+        #	1: Indicates the Immutable Schedule Entry List is included in the NDL attribute;
+        #	0: otherwise
+        #NDC Attribute Present	1
+        #	1: Indicates the NDC attribute associated with the NDL schedule is included in the same frame that carries the NDL attribute;
+        #	0: otherwise
+        #NDL QoS Attribute Present	1
+        #	1: Indicates the NDL QoS attribute associated with the NDL schedule is included in the same frame that carries the NDL attribute;
+        #	0: otherwise
+        #Max Idle Period Present	1
+        #	1: Indicates the Max Idle Period field is included in the NDL attribute;
+        #	0: otherwise
+        #NDL Type	1
+        #	1: Reserved (Indicates P-NDL request/response or confirm)
+        #	0: Indicates S-NDL
+        #NDL Setup Reason	2
+        #	00: NDP
+        #	01: FSD using GAS
+        #	10: reserved
+        #	11: reserved
+        ctrlbits = '{:08b}'.format(int(data[:2],16))
+        print ('\tNDL Control')
+        print ('\t\tNDL Peer ID Present: True' if ctrlbits[7] == '1' else '\t\tNDL Peer ID Present: False' )
+        print ('\t\tImmutable Schedule Present: True' if ctrlbits[6] == '1' else '\t\tImmutable Schedule Present: False' )
+        print ('\t\tNDC Attribute Present: True' if ctrlbits[5] == '1' else '\t\tNDC Attribute Present: False' )
+        print ('\t\tNDL QoS Attribute Present: True' if ctrlbits[4] == '1' else '\t\tNDL QoS Attribute Present: False' )
+        print ('\t\tMax Idle Period Present: True' if ctrlbits[3] == '1' else '\t\tMax Idle Period Present: False' )
+        print ('\t\tReserved (Indicates P-NDL request/response or confirm)' if ctrlbits[2] == '1' else '\t\tIndicates S-NDL' )
+        if ctrlbits[:2] == '00':
+            print ('\t\tNDL Setup Reason: NDP')
+        elif ctrlbits[:2] == '01':
+            print ('\t\tNDL Setup Reason: FSD using GAS')
+        else:
+            print ('\t\tNDL Setup Reason: reserved')
+        baseindex = 2
+        if ctrlbits[7] == '1':
+            NDLattr.NDL_PeerID(data[baseindex:baseindex+2])
+        if ctrlbits[3] == '1':
+            NDLattr.MaxIdlePeriod(data[baseindex:baseindex+4])
+        if ctrlbits[6] == '1':
+            NDLattr.ImmutableSched(data[baseindex:])
+            
+    @staticmethod    
+    def NDL_PeerID(data):
+        print '\tNDL PeerID'
+        print '\t\tPeer ID:{}'.format(data)
+    @staticmethod    
+    def MaxIdlePeriod(data):
+        print '\tMax Idle Period'
+        print '\t\tIndicate a period of time in units of 1024TU during which the peer NAN device can refrain from transmitting over the NDL: {}'.format(int(data,16))
+    @staticmethod    
+    def ImmutableSched(data):
+        print '\tImmutable Schedule'
+        print '\t\tbitmap: {}'.format(data)
         
 class NDLQoSattr(object):
     def __init__(self,data):        
@@ -432,7 +493,7 @@ def parseNan(data):
         print data
     try:
         length = int(data[2:4],16)  #actually 2 octets [2:6] bigEndian maybe though
-        print 'length: {} \trawData: {}'.format(length,data[6:(length*2)+6])
+        print '\tlength: {} \trawData: {}'.format(length,data[6:(length*2)+6])
         #dict with all the fields - defs as tuples
         parseNan(data[6+(length*2):])
     except Exception:
