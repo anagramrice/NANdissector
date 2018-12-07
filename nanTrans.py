@@ -176,8 +176,93 @@ class DeviceCapability(object):
         
 class NanAvailability(object):
     def __init__(self,data):        
-        pass
-        #Sequence ID 1, Attribute Ctrl 2, Availablity Entry List va
+        NanAvailability.sequenceID(data[:2])
+        NanAvailability.attr_ctrl(data[2:6])
+        NanAvailability.availabilityEntry(data[6:])
+        #Sequence ID 1, Attribute Ctrl 2, Availablity Entry List var
+        
+    @staticmethod
+    def sequenceID(data):
+        print ('\tNan Availability Sequence ID: {}'.format(int(data,16)))
+        
+    @staticmethod
+    def attr_ctrl(data):
+        #Field   Size(bits)     Value	
+        #Map ID	4	Variable
+        #	Identify the associated NAN Availability attribute
+        #Committed Changed	1	0 or 1
+        #	Set to 1 if Committed Availability changed, compared with last schedule advertisement; or any Conditional Availability is included.
+        #	Set to 0, otherwise.
+        #	This setting shall be the same for all the maps in a frame
+        #Potential Changed	1	0 or 1
+        #	Set to 1 if Potential Availability changed, compared with last schedule advertisement.
+        #	Set to 0, otherwise.
+        #	This setting shall be the same for all the maps in a frame
+        #Public Availability Attribute Changed	1	0 or 1
+        #	Set to 1 if Public Availability attribute changed, compared with last schedule advertisement.
+        #	Set to 0, otherwise.
+        #NDC Attribute Changed	1	0 or 1
+        #	Set to 1 if NDC attribute changed, compared with last schedule advertisement.
+        #	Set to 0, otherwise.
+        #Reserved (Multicast Schedule Attribute Changed)	1	0 or 1
+        #	Set to 1 if Multicast Schedule attribute changed, compared with last schedule advertisement.
+        #	Set to 0, otherwise.
+        #Reserved (Multicast Schedule Change Attribute Changed)	1	0 or 1
+        #	Set to 1 if Multicast Schedule Change attribute changed, compared with last schedule advertisement.
+        #	Set to 0, otherwise.
+        #Reserved	6	Variable
+        #    Reserved    
+        attrbits = '{:016b}'.format(int(data,16))
+        print ('\tNAN availability attribute Control')
+        print ('\t\tmap id: {}'.format(attrbits[12:16]))
+        print ('\t\tCommitted Availability : Changed' if attrbits[11] == '1' else '\t\tICommitted Availability : No Change' )
+        print ('\t\tPotential Availability : Changed' if attrbits[10] == '1' else '\t\tPotential Availability : No Change' )
+        print ('\t\tPublic Availability attribute: Changed' if attrbits[9] == '1' else '\t\tPublic Availability attribute: No Change' )
+        print ('\t\tNDC Attribute: Changed' if attrbits[8] == '1' else '\t\tNDC Attribute: No Change' )
+        print ('\t\tMulticast Schedule attribute: Changed' if attrbits[7] == '1' else '\t\tMulticast Schedule attribute: No Change' )
+        print ('\t\tMulticast Schedule Change attribute: Changed' if attrbits[6] == '1' else '\t\tMulticast Schedule Change attribute: No Change' )
+    @staticmethod
+    def availabilityEntry(data):
+        #Field	Size (octets)	Value	Description
+        #Length	2	Variable	The length of the fields following the Length field in the attribute, in the number of octets.
+        #Entry Control	2	Variable	See Table 80 for details.
+        #Time Bitmap Control	2	Variable	Indicates the parameters associated with the subsequent Time Bitmap field. See Table 81 for details.
+        #Time Bitmap Length	1	Variable	Indicate the length of the following Time Bitmap field, in the number of octets.
+        #Time Bitmap	Variable	Variable	Each bit in the Time Bitmap corresponds to a time duration indicated by the value of Bit Duration subfield in the Time Bitmap Control field.
+        #	When the bit is set to 1, the NAN Device indicates its availability for any NAN operations for the whole time duration associated with the bit.
+        #	When the bit is set to 0, the NAN Device indicates unavailable for any NAN related operations for the time duration associated with the bit.
+        #Band/Channel Entry List	Variable	Variable	The list of one or more Band or Channel Entries corresponding to this Availability Entry. See Table 82 for details.
+        def entryCtrl(subdata):
+            #0-2		Availability Type
+            #	b0: 1, Committed; 0, otherwise;
+            #	b1: 1, Potential; 0, otherwise.
+            #	b2: 1, Conditional; 0, otherwise.
+            #	000, 101, and 111 are reserved.
+            #	Note - At least one of the three bits is set to 1 to be meaningful.
+            #3-4		Usage Preference
+            #	An integer ranging from 0 to 3, which represents the preference of being available in the associated FAWs. The preference is higher when the value is set larger.
+            #	Note: It does not apply to Committed or Conditional FAWs.
+            #5-7		Utilization
+            #	Values 0 - 5 indicating proportion within the associated FAWs that are already utilized for other purposes quantized to 20%.
+            #	Value 6 is reserved.
+            #	Value 7 indicates unknown utilization.
+            #8-11	Rx Nss
+            #Indicate the max number of spatial streams the NAN Device can receive during the associated FAWs.
+            #12		Time Bitmap Present
+            #	1: Time Bitmap Control, Time Bitmap Length, and Time Bitmap fields are present
+            #	0: Time Bitmap Control, Time Bitmap Length, and Time Bitmap are NOT present, and all NAN Slots are available
+            #13-15	Reserved
+            #	Reserved
+            attrbits = '{:016b}'.format(int(subdata,16))
+            print ('\t\t\tEntry Control Bits: {}'.format(attrbits))
+        print ('\tNAN availability Entry:')
+        print ('\t\tLength: '.format(int(data[:2],16)))
+        entryCtrl(data[2:4])
+        print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
+        bitmapLength = int(data[6:8],16)
+        print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
+        print ('\t\tTime Bitmap: {:b}'.format(data[8:8+(bitmapLength*2)]))
+        print ('\t\tBand/Channel Entry list: {:08b}'.format(data[8+(bitmapLength*2):]))
         
 class NDCattr(object):
     def __init__(self,data):        
@@ -493,7 +578,7 @@ def parseNan(data):
         print data
     try:
         length = int(data[2:4],16)  #actually 2 octets [2:6] bigEndian maybe though
-        print '\tlength: {} \trawData: {}'.format(length,data[6:(length*2)+6])
+        print 'length: {} \trawData: {}'.format(length,data[6:(length*2)+6])
         #dict with all the fields - defs as tuples
         parseNan(data[6+(length*2):])
     except Exception:
