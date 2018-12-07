@@ -261,8 +261,8 @@ class NanAvailability(object):
         print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
         bitmapLength = int(data[6:8],16)
         print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
-        print ('\t\tTime Bitmap: {:b}'.format(data[8:8+(bitmapLength*2)]))
-        print ('\t\tBand/Channel Entry list: {:08b}'.format(data[8+(bitmapLength*2):]))
+        print ('\t\tTime Bitmap: {:b}'.format(int(data[8:8+(bitmapLength*2)],16)))
+        print ('\t\tBand/Channel Entry list: {:08b}'.format(int(data[8+(bitmapLength*2):],16)))
         
 class NDCattr(object):
     def __init__(self,data):        
