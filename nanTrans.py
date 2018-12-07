@@ -420,8 +420,8 @@ class NDPattr(object):
         print '\tDialog Token id of transaction: {}'.format(data)
     @staticmethod    
     def Type_Status(data):
-        typebits = '{:08b}'.format(int(data,16))[:4]
-        statusbits = '{:08b}'.format(int(data,16))[4:]
+        typebits = '{:08b}'.format(int(data,16))[4:8]
+        statusbits = '{:08b}'.format(int(data,16))[:4]
         type = int(typebits,2)
         status = int(statusbits,2)
         print '\tType and Status'
