@@ -259,10 +259,15 @@ class NanAvailability(object):
         print ('\t\tLength: '.format(int(data[:2],16)))
         entryCtrl(data[2:4])
         print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
-        bitmapLength = int(data[6:8],16)
-        print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
-        print ('\t\tTime Bitmap: {:b}'.format(int(data[8:8+(bitmapLength*2)],16)))
-        print ('\t\tBand/Channel Entry list: {:08b}'.format(int(data[8+(bitmapLength*2):],16)))
+        try:
+            bitmapLength = int(data[6:8],16)
+            print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
+            print ('\t\tTime Bitmap: {:b}'.format(int(data[8:8+(bitmapLength*2)],16)))
+            #print len(data), 8+(bitmapLength*2)
+            #print data[8+(bitmapLength*2):]    MAYBE issue look into it        
+            print ('\t\tBand/Channel Entry list: {:08b}'.format(int(data[8+(bitmapLength*2):],16)))
+        except ValueError:
+            pass
         
 class NDCattr(object):
     def __init__(self,data):        
