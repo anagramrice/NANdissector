@@ -215,7 +215,7 @@ class NanAvailability(object):
         attrbits = '{:016b}'.format(int(data,16))
         print ('\tNAN availability attribute Control')
         print ('\t\tmap id: {}'.format(attrbits[12:16]))
-        print ('\t\tCommitted Availability : Changed' if attrbits[11] == '1' else '\t\tICommitted Availability : No Change' )
+        print ('\t\tCommitted Availability : Changed' if attrbits[11] == '1' else '\t\tCommitted Availability : No Change' )
         print ('\t\tPotential Availability : Changed' if attrbits[10] == '1' else '\t\tPotential Availability : No Change' )
         print ('\t\tPublic Availability attribute: Changed' if attrbits[9] == '1' else '\t\tPublic Availability attribute: No Change' )
         print ('\t\tNDC Attribute: Changed' if attrbits[8] == '1' else '\t\tNDC Attribute: No Change' )
@@ -255,19 +255,58 @@ class NanAvailability(object):
             #	Reserved
             attrbits = '{:016b}'.format(int(subdata,16))
             print ('\t\t\tEntry Control Bits: {}'.format(attrbits))
+            print ('\t\t\t\tAvailability Type [Conditional,Potential,Committed]: {}'.format(attrbits[13:]))
+            print ('\t\t\t\tUsage Preference (larger higher preference): {}'.format(int(attrbits[11:13],2)))
+            print ('\t\t\t\tUtilization: {}'.format(attrbits[8:11]))
+            print ('\t\t\t\tRx Nss (max number of spatial streams the NAN Device): {}'.format(int(attrbits[4:8],2)))
+            print ('\t\t\t\tTime Bitmap Present: {}'.format(attrbits[3]))
+        def timebitmapCtrl(subdata):
+            # Bit(s)	Field			Notes
+            # 0-2		Bit Duration	0:16 TU
+            # 						1:32 TU	
+            # 						2:64 TU
+            # 						3:128 TU
+            # 						4-7 reserved
+            bitdur = {0:'16 TU',1:'32 TU',2:'64 TU',3:'128 TU',4:'reserved',5:'reserved',6:'reserved',7:'reserved'}
+            # 3-5		Period			Indicate the repeat interval of the following bitmap. When set to 0, the indicated bitmap is not repeated.
+            # 						When set to non-zero, the repeat interval is:
+            # 						1:128 TU
+            # 						2: 256 TU
+            # 						3: 512 TU
+            # 						4: 1024 TU
+            # 						5: 2048 TU
+            # 						6: 4096 TU
+            # 						7: 8192 TU
+            period = {0:'No Repeat',1:'128 TU',2:'256 TU',3:'512 TU',4:'1024 TU',5:'2048 TU',6:'4096 TU',7:'8192 TU'}
+            # 6-14	Start Offset	Start Offset is an integer. The time period specified by the Time Bitmap field starts at the 16 * Start Offset TUs after DW0.
+            # 						Note that the NAN Slots not covered by any Time Bitmap are assumed to be NOT available.
+            # 15		Reserved		Reserved
+            bitmapbits = '{:016b}'.format(int(subdata,16))
+            print ('\t\t\tTime Bitmap Control: ')
+            print ('\t\t\t\tBit Duration: {}'.format( bitdur[int(bitmapbits[13:],16)] ))
+            print ('\t\t\t\tPeriod: {}'.format( period[int(bitmapbits[10:13],16)] ))
+            print ('\t\t\t\tStart Offset: {}'.format(int(bitmapbits[1:10],16)))
         print ('\tNAN availability Entry:')
-        print ('\t\tLength: '.format(int(data[:2],16)))
-        entryCtrl(data[2:4])
-        print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
+        print ('\t\tAvailability Entry Length: {}'.format(int(data[:2],16)))   #is actually 2 octets but never use the 00 octet in int calc
+        entryCtrl(data[4:8])
+        timebitmapCtrl(data[8:12])
+        #print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
         try:
-            bitmapLength = int(data[6:8],16)
+            bitmapLength = int(data[12:14],16)
             print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
-            print ('\t\tTime Bitmap: {:b}'.format(int(data[8:8+(bitmapLength*2)],16)))
+            print ('\t\tTime Bitmap (1:avail 0:unavail) use prev bit duration: {:b}'.format(int(data[14:14+(bitmapLength*2)],16)))
             #print len(data), 8+(bitmapLength*2)
-            #print data[8+(bitmapLength*2):]    MAYBE issue look into it        
-            print ('\t\tBand/Channel Entry list: {:08b}'.format(int(data[8+(bitmapLength*2):],16)))
+            #print data[8+(bitmapLength*2):]    MAYBE issue look into it
+            band = '{:b}'.format(int(data[(14+(bitmapLength*2)):],16))
+            print ('\t\tType: The list is a set of Operationg Classes and channel entries' if band[7] == '1' else '\t\tType: The list is a set of indicated bands' )
+            print ('\t\tNon-contiguous Bandwidth: Non-contiguous bandwidth' if band[6] == '1' else '\t\tNon-contiguous Bandwidth: Contiguous bandwidth' )
+            print ('\t\tNumber of Band or Channel Entries: {}'.format( int(band[0:4],2) ))            
+            print ('\t\tBand/Channel Entry list: {}'.format(data[10+(bitmapLength*2):]))
         except ValueError:
+            tb.print_exc()
             pass
+        except Exception:
+            tb.print_exc()
         
 class NDCattr(object):
     def __init__(self,data):        
@@ -598,26 +637,27 @@ def binPackets(nan, isPcap):
             data = str(packet).encode('HEX')
         else:
             data = packet
+        #Truncating to -8 to remove 802.11 4 byte checksum
         if '09506f9a18' in data:
             nandata = data.split('506f9a18')[1]
             print 'action ', getsubtype(nandata[0:2])
-            parseNan(nandata[2:])
+            parseNan(nandata[2:-8])
         elif '09506f9a13' in data:
             nandata = data.split('506f9a13')[1]
             print 'serviceDis ' ,  nandata
-            parseNan(nandata)
+            parseNan(nandata[:-8])
         elif '04506f9a18' in data:
             nandata = data.split('506f9a18')[1]
             print 'action ', getsubtype(nandata[0:2])
-            parseNan(nandata[2:])
+            parseNan(nandata[2:-8])
         elif '04506f9a13' in data:
             nandata = data.split('506f9a13')[1]
             print 'serviceDis ' ,  nandata
-            parseNan(nandata)
+            parseNan(nandata[:-8])
         elif re.search('dd\w{2}506f9a13',data):
             nandata = data.split('506f9a13')[1]
             print 'Info Element ' ,  nandata
-            parseNan(nandata)
+            parseNan(nandata[:-8])
         print '#'*20, 'end of packet', count
         count+=1
 
