@@ -257,7 +257,7 @@ class NanAvailability(object):
             print ('\t\t\tEntry Control Bits: {}'.format(attrbits))
             print ('\t\t\t\tAvailability Type [Conditional,Potential,Committed]: {}'.format(attrbits[13:]))
             print ('\t\t\t\tUsage Preference (larger higher preference): {}'.format(int(attrbits[11:13],2)))
-            print ('\t\t\t\tUtilization: {}'.format(attrbits[8:11]))
+            print ('\t\t\t\tUtilization [0-5] 20%: {}'.format(attrbits[8:11]))
             print ('\t\t\t\tRx Nss (max number of spatial streams the NAN Device): {}'.format(int(attrbits[4:8],2)))
             print ('\t\t\t\tTime Bitmap Present: {}'.format(attrbits[3]))
         def timebitmapCtrl(subdata):
@@ -286,6 +286,38 @@ class NanAvailability(object):
             print ('\t\t\t\tBit Duration: {}'.format( bitdur[int(bitmapbits[13:],16)] ))
             print ('\t\t\t\tPeriod: {}'.format( period[int(bitmapbits[10:13],16)] ))
             print ('\t\t\t\tStart Offset: {}'.format(int(bitmapbits[1:10],16)))
+        def bandChanEntries(subdata):
+            #Bit(s)	Field						Description
+            #0		Type						Specifies whether the list refers to a set of indicated bands or a set of operating classes and channel entries.
+            #									0: The list is a set of indicated bands.
+            #									1: the list is a set of Operating Classes and channel entries
+            #									
+            #1		Non-contiguous Bandwidth	0: Contiguous bandwidth
+            #									1: Non-contiguous bandwidth
+            #									This field is set to 1 if there is at least one Channel Entry indicates non-contiguous bandwidth.
+            #2-3		Reserved					Reserved
+            #
+            #4-7		# Band/Ch Entries			The number of band entries or channel entries in the list.
+            #									Value 0 is reserved.
+            #									
+            #Var		Band/Channel Entries		If the Type value is 0, including one or more Band Entries, as shown in Figure 48. The value of each Band Entry is specified by the Table 9-63 Band ID field in [1], which is also quoted in Table 83.
+            #									If the Type value is 1, including one or more Channel Entries as defined in Table 84.
+            print ('\t\tBand/Channel Entry List')
+            band = '{:08b}'.format(int(subdata[0:2],16))
+            print ('\t\t\tType: The list is a set of Operating Classes and channel entries' if band[7] == '1' else '\t\t\tType: The list is a set of indicated bands' )
+            print ('\t\t\tNon-contiguous Bandwidth: Non-contiguous bandwidth' if band[6] == '1' else '\t\t\tNon-contiguous Bandwidth: Contiguous bandwidth' )
+            print ('\t\t\tNumber of Band or Channel Entries: {}'.format( int(band[0:4],2) ))
+            print ('\t\t\tBand/Channel Entry list: {}'.format(subdata[2:]))
+            while subdata:
+                print ('\t\t\tOperating Class: {}'.format(int(subdata[2:4],16)))
+                print ('\t\t\tChannel Bitmap: {:016b}'.format(int(subdata[4:8],16)))
+                print ('\t\t\tPrimary Channel Bitmap: {:08b}'.format(int(subdata[8:10],16)))
+                if band[6] == '1':
+                    print ('\t\t\tAuxiliary Channel Bitmap: {:016b}'.format(int(subdata[10:14],16)))
+                    subdata = subdata[14:]
+                else:
+                    subdata = subdata[10:]
+            
         print ('\tNAN availability Entry:')
         print ('\t\tAvailability Entry Length: {}'.format(int(data[:2],16)))   #is actually 2 octets but never use the 00 octet in int calc
         entryCtrl(data[4:8])
@@ -294,16 +326,10 @@ class NanAvailability(object):
         try:
             bitmapLength = int(data[12:14],16)
             print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
-            print ('\t\tTime Bitmap (1:avail 0:unavail) use prev bit duration: {:b}'.format(int(data[14:14+(bitmapLength*2)],16)))
-            #print len(data), 8+(bitmapLength*2)
-            #print data[8+(bitmapLength*2):]    MAYBE issue look into it
-            band = '{:b}'.format(int(data[(14+(bitmapLength*2)):],16))
-            print ('\t\tType: The list is a set of Operationg Classes and channel entries' if band[7] == '1' else '\t\tType: The list is a set of indicated bands' )
-            print ('\t\tNon-contiguous Bandwidth: Non-contiguous bandwidth' if band[6] == '1' else '\t\tNon-contiguous Bandwidth: Contiguous bandwidth' )
-            print ('\t\tNumber of Band or Channel Entries: {}'.format( int(band[0:4],2) ))            
-            print ('\t\tBand/Channel Entry list: {}'.format(data[10+(bitmapLength*2):]))
+            print ('\t\tTime Bitmap (1:avail 0:unavail) use prev bit duration: {:b}'.format(int(data[14:14+(bitmapLength*2)],16)))            
+            bandChanEntries(data[(14+(bitmapLength*2)):])
+            
         except ValueError:
-            tb.print_exc()
             pass
         except Exception:
             tb.print_exc()
