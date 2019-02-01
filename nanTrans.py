@@ -178,7 +178,11 @@ class NanAvailability(object):
     def __init__(self,data):        
         NanAvailability.sequenceID(data[:2])
         NanAvailability.attr_ctrl(data[2:6])
-        NanAvailability.availabilityEntry(data[6:])
+        entries = data[6:]
+        while entries:
+            length = int(entries[:2],16)  #actually 2 octets but truncate trailing zeros
+            NanAvailability.availabilityEntry(entries[:(length*2)+4])
+            entries = entries[(length*2)+4:]
         #Sequence ID 1, Attribute Ctrl 2, Availablity Entry List var
         
     @staticmethod
