@@ -86,7 +86,7 @@ class DeviceCapability(object):
             
     @staticmethod
     def Committed_DW_Info(data):
-        DW_fields = '{:016b}'.format(int(data,16))
+        DW_fields = '{:016b}'.format(int(data[2:4]+data[:2],16))        #endian
         print '\tCommitted Discovery Window Info'
         #2.4 GHz DW b0-b2
         print '\t\t2.4GHz Discovery Window wake up 2^(n-1): {} [0 no wake up]'.format(DW_fields[13:16])
@@ -149,7 +149,7 @@ class DeviceCapability(object):
         #Indicates max channel switch time in units of microseconds;
         #Value 0 indicates the information is not available.
         #Note: Max Channel Switch Time value should be the same across multiple Device Capability attributes included in a single frame.
-        ChSwitchTime = int(data,16)
+        ChSwitchTime = int(data[2:4]+data[:2],16)         #endian
         print ('\tMax channel switch time: not available' if ChSwitchTime == 0 else '\tMax channel switch time (uS): {}'.format(ChSwitchTime))
         
     @staticmethod
@@ -216,7 +216,7 @@ class NanAvailability(object):
         #	Set to 0, otherwise.
         #Reserved	6	Variable
         #    Reserved    
-        attrbits = '{:016b}'.format(int(data,16))
+        attrbits = '{:016b}'.format(int(data[2:4]+data[:2],16))   #endian
         print ('\tNAN availability attribute Control')
         print ('\t\tmap id: {}'.format(attrbits[12:16]))
         print ('\t\tCommitted Availability : Changed' if attrbits[11] == '1' else '\t\tCommitted Availability : No Change' )
@@ -257,7 +257,7 @@ class NanAvailability(object):
             #	0: Time Bitmap Control, Time Bitmap Length, and Time Bitmap are NOT present, and all NAN Slots are available
             #13-15	Reserved
             #	Reserved
-            attrbits = '{:016b}'.format(int(subdata,16))
+            attrbits = '{:016b}'.format(int(subdata[2:4]+subdata[:2],16))                 #endian
             print ('\t\t\tEntry Control Bits: {}'.format(attrbits))
             print ('\t\t\t\tAvailability Type [Conditional,Potential,Committed]: {}'.format(attrbits[13:]))
             print ('\t\t\t\tUsage Preference (larger higher preference): {}'.format(int(attrbits[11:13],2)))
@@ -285,11 +285,11 @@ class NanAvailability(object):
             # 6-14	Start Offset	Start Offset is an integer. The time period specified by the Time Bitmap field starts at the 16 * Start Offset TUs after DW0.
             # 						Note that the NAN Slots not covered by any Time Bitmap are assumed to be NOT available.
             # 15		Reserved		Reserved
-            bitmapbits = '{:016b}'.format(int(subdata,16))
-            print ('\t\t\tTime Bitmap Control: ')
-            print ('\t\t\t\tBit Duration: {}'.format( bitdur[int(bitmapbits[13:],16)] ))
-            print ('\t\t\t\tPeriod: {}'.format( period[int(bitmapbits[10:13],16)] ))
-            print ('\t\t\t\tStart Offset: {}'.format(int(bitmapbits[1:10],16)))
+            bitmapbits = '{:016b}'.format(int(subdata[2:4]+subdata[:2],16))                     #endian
+            print ('\t\t\tTime Bitmap Control: {}'.format(bitmapbits))
+            print ('\t\t\t\tBit Duration: {}'.format( bitdur[int(bitmapbits[13:],2)] ))
+            print ('\t\t\t\tPeriod: {}'.format( period[int(bitmapbits[10:13],2)] ))
+            print ('\t\t\t\tStart Offset: {}'.format(int(bitmapbits[1:10],2)))
         def bandChanEntries(subdata):
             #Bit(s)	Field						Description
             #0		Type						Specifies whether the list refers to a set of indicated bands or a set of operating classes and channel entries.
@@ -306,21 +306,31 @@ class NanAvailability(object):
             #									
             #Var		Band/Channel Entries		If the Type value is 0, including one or more Band Entries, as shown in Figure 48. The value of each Band Entry is specified by the Table 9-63 Band ID field in [1], which is also quoted in Table 83.
             #									If the Type value is 1, including one or more Channel Entries as defined in Table 84.
+            listBands = """\t\t0: Reserved (for TV white spaces)
+            \t1: Sub-1 GHz (excluding TV white spaces)
+            \t2: 2.4 GHz
+            \t3: Reserved (for 3.6 GHz)
+            \t4: 4.9 and 5 GHz
+            \t5: Reserved (for 60 GHz)
+            \t6-255: Reserved"""
             print ('\t\tBand/Channel Entry List')
             band = '{:08b}'.format(int(subdata[0:2],16))
             print ('\t\t\tType: The list is a set of Operating Classes and channel entries' if band[7] == '1' else '\t\t\tType: The list is a set of indicated bands' )
             print ('\t\t\tNon-contiguous Bandwidth: Non-contiguous bandwidth' if band[6] == '1' else '\t\t\tNon-contiguous Bandwidth: Contiguous bandwidth' )
             print ('\t\t\tNumber of Band or Channel Entries: {}'.format( int(band[0:4],2) ))
             print ('\t\t\tBand/Channel Entry list: {}'.format(subdata[2:]))
-            while subdata:
-                print ('\t\t\tOperating Class: {}'.format(int(subdata[2:4],16)))
-                print ('\t\t\tChannel Bitmap: {:016b}'.format(int(subdata[4:8],16)))
-                print ('\t\t\tPrimary Channel Bitmap: {:08b}'.format(int(subdata[8:10],16)))
-                if band[6] == '1':
-                    print ('\t\t\tAuxiliary Channel Bitmap: {:016b}'.format(int(subdata[10:14],16)))
-                    subdata = subdata[14:]
-                else:
-                    subdata = subdata[10:]
+            if band[7] == '1':
+                while subdata:
+                    print ('\t\t\tOperating Class: {}'.format(int(subdata[2:4],16)))
+                    print ('\t\t\tChannel Bitmap: {:016b}'.format(int(subdata[6:8]+subdata[4:6],16)))             #endian
+                    print ('\t\t\tPrimary Channel Bitmap: {:08b}'.format(int(subdata[8:10],16)))
+                    if band[6] == '1':
+                        print ('\t\t\tAuxiliary Channel Bitmap: {:016b}'.format(int(subdata[12:14]+subdata[10:12],16)))         #endian
+                        subdata = subdata[14:]
+                    else:
+                        subdata = subdata[10:]
+            if band[7] == '0':
+                print ('\t\tBand Entries (each octet own band entry): {}\n{}'.format(subdata, listBands))            
             
         print ('\tNAN availability Entry:')
         print ('\t\tAvailability Entry Length: {}'.format(int(data[:2],16)))   #is actually 2 octets but never use the 00 octet in int calc
@@ -329,11 +339,13 @@ class NanAvailability(object):
         #print ('\t\tTime Bitmap Control: {:016b}'.format(int(data[4:6],16)))
         try:
             bitmapLength = int(data[12:14],16)
-            print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))
-            print ('\t\tTime Bitmap (1:avail 0:unavail) use prev bit duration: {:b}'.format(int(data[14:14+(bitmapLength*2)],16)))            
-            bandChanEntries(data[(14+(bitmapLength*2)):])
+            print ('\t\tTime Bitmap Length: {}'.format(bitmapLength))            
+            if data[14:14+(bitmapLength*2)]:                 
+                print ('\t\tTime Bitmap (1:avail 0:unavail) use prev bit duration: {:b}'.format(int(data[14:14+(bitmapLength*2)],16)))            
+                bandChanEntries(data[(14+(bitmapLength*2)):])
             
         except ValueError:
+            #tb.print_exc()
             pass
         except Exception:
             tb.print_exc()
@@ -391,7 +403,7 @@ class NDCattr(object):
         #Time Bitmap			Variable	Indicates the time windows associated with the schedule
         print ('\tSchedule Entry')
         print ('\t\tMapID Indicates the NAN Availability attribute associated with the subsequent schedule time bitmap: {:08b}'.format(int(data[:2],16)))
-        timebitCtrl = '{:016b}'.format(int(data[2:6],16))
+        timebitCtrl = '{:016b}'.format(int(data[4:6]+data[2:4],16))    #endian
         print ('\t\tTime Bitmap Control')
         print ('\t\t\tDuration: {}'.format(int(timebitCtrl[13:16],2)))
         print ('\t\t\tPeriod: {}'.format(int(timebitCtrl[10:13],2)))
@@ -641,7 +653,7 @@ def parseNan(data):
         if "{:02x}".format(i[0]) in data[0:2] :
             print i[1]
             try:
-                length = int(data[2:4],16)  #actually 2 octets [2:6] bigEndian maybe though
+                length = int(data[4:6]+data[2:4],16)  # 2 octets [2:6] Little-Endian
                 datapathSetup[i[1]](data[6:(length*2)+6])
             except KeyError:
                 pass
@@ -650,11 +662,14 @@ def parseNan(data):
             match = True
     if not match:
         print data
-    try:
-        length = int(data[2:4],16)  #actually 2 octets [2:6] bigEndian maybe though
-        print 'length: {} \trawData: {}'.format(length,data[6:(length*2)+6])
-        #dict with all the fields - defs as tuples
-        parseNan(data[6+(length*2):])
+    try:        
+        if len(data) > 0:
+            length = int(data[4:6]+data[2:4],16)  # 2 octets [2:6] Little-Endian
+            print 'length: {} \trawData: {}'.format(length,data[6:(length*2)+6])
+            #dict with all the fields - defs as tuples
+            parseNan(data[6+(length*2):])
+	else:
+	    return
     except Exception:
         #tb.print_exc()
         pass
